@@ -1,0 +1,1993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>空调控制应用原型</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        
+        /* 问卷调查弹窗样式 */
+        .survey-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            overflow: auto;
+        }
+        
+        .survey-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .survey-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .survey-header h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .survey-header p {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .survey-form {
+            margin-bottom: 20px;
+        }
+        
+        .survey-question {
+            margin-bottom: 20px;
+        }
+        
+        .survey-question-title {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .survey-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .survey-option {
+            background-color: #f5f5f5;
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 14px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .survey-option.selected {
+            background-color: #e1f0ff;
+            border-color: #007aff;
+            color: #007aff;
+        }
+        
+        .survey-input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            font-size: 14px;
+            color: #333;
+            background-color: #f8f8f8;
+        }
+        
+        .survey-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .survey-progress {
+            display: flex;
+            align-items: center;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .survey-progress-bar {
+            width: 100px;
+            height: 4px;
+            background-color: #e0e0e0;
+            border-radius: 2px;
+            margin-right: 10px;
+            overflow: hidden;
+        }
+        
+        .survey-progress-fill {
+            height: 100%;
+            background-color: #007aff;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .survey-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .survey-btn-next {
+            background-color: #007aff;
+            color: white;
+        }
+        
+        .survey-btn-prev {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .survey-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .prototype-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            max-width: 1200px;
+        }
+        
+        .phone {
+            width: 390px; /* iPhone 16 width */
+            height: 844px; /* iPhone 16 height */
+            background-color: white;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 10px solid #1a1a1a;
+        }
+        
+        .screen {
+            width: 100%;
+            height: 100%;
+            background-color: #f8f8f8;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .notch {
+            width: 150px;
+            height: 30px;
+            background-color: #1a1a1a;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            z-index: 10;
+        }
+        
+        .status-bar {
+            height: 44px;
+            width: 100%;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            background-color: transparent;
+            position: relative;
+            z-index: 5;
+        }
+        
+        .time {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .battery, .signal {
+            display: flex;
+            align-items: center;
+        }
+        
+        .battery i, .signal i {
+            margin-left: 5px;
+        }
+        
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            background-color: #f8f8f8;
+        }
+        
+        .page.active {
+            display: flex;
+        }
+        
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-top: 60px;
+            padding-bottom: 90px;
+        }
+        
+        .tab-bar {
+            height: 80px;
+            width: 100%;
+            background-color: white;
+            position: absolute;
+            bottom: 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #eee;
+            padding-bottom: 20px;
+        }
+        
+        .tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+            height: 60px;
+            cursor: pointer;
+        }
+        
+        .tab i {
+            font-size: 24px;
+            margin-bottom: 5px;
+            color: #999;
+        }
+        
+        .tab.active i {
+            color: #007aff;
+        }
+        
+        .tab span {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .tab.active span {
+            color: #007aff;
+            font-weight: 500;
+        }
+        
+        /* 首页样式 */
+        .home-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.2);
+        }
+        
+        .temperature-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .current-temp {
+            font-size: 56px;
+            font-weight: 300;
+            line-height: 1;
+        }
+        
+        .temp-unit {
+            font-size: 22px;
+            margin-left: 4px;
+            font-weight: 300;
+        }
+        
+        .ac-status {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .status-item {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 6px 10px;
+            border-radius: 18px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-item i {
+            margin-right: 5px;
+        }
+        
+        .control-section {
+            background-color: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 6px;
+            font-size: 18px;
+            color: #007aff;
+        }
+        
+        .mode-controls, .temp-controls, .fan-controls, .direction-controls {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .mode-controls::-webkit-scrollbar, 
+        .temp-controls::-webkit-scrollbar, 
+        .fan-controls::-webkit-scrollbar, 
+        .direction-controls::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .control-btn {
+            min-width: 70px;
+            height: 70px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #f5f5f5;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .control-btn i {
+            font-size: 22px;
+            margin-bottom: 6px;
+            color: #666;
+        }
+        
+        .control-btn span {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .control-btn.active {
+            background-color: #007aff;
+        }
+        
+        .control-btn.active i, .control-btn.active span {
+            color: white;
+        }
+        
+        .temp-slider {
+            width: 100%;
+            padding: 0 10px;
+        }
+        
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            margin: 20px 0;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #007aff;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .temp-range {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #999;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            background-color: #f5f5f5;
+            border-radius: 15px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .action-btn i {
+            font-size: 18px;
+            margin-right: 8px;
+            color: #007aff;
+        }
+        
+        .action-btn span {
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .action-btn.active {
+            background-color: #4285f4;
+        }
+        
+        .action-btn.active i,
+        .action-btn.active span {
+            color: white;
+        }
+        
+        /* 弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            overflow: auto;
+        }
+        
+        .modal-content {
+            background-color: #fff;
+            margin: 20% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 350px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .close-modal {
+            color: #aaa;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        
+        .timer-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .timer-option label {
+            margin-left: 10px;
+            flex: 1;
+        }
+        
+        #custom-time {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-left: 10px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .modal-footer button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        
+        #cancel-timer {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        #confirm-timer {
+            background-color: #4285f4;
+            color: white;
+        }
+        
+        /* 预设页面样式 */
+        .preset-card {
+            background-color: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+        }
+        
+        .preset-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .preset-morning {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+        }
+        
+        .preset-home {
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+        }
+        
+        .preset-sleep {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        }
+        
+        .preset-sport {
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+        }
+        
+        .preset-work {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        }
+        
+        .preset-info {
+            flex: 1;
+        }
+        
+        .preset-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .preset-desc {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .preset-settings {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .preset-setting {
+            background-color: #f5f5f5;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+        }
+        
+        .preset-setting i {
+            margin-right: 5px;
+            font-size: 12px;
+        }
+        
+        .preset-toggle {
+            width: 50px;
+            height: 30px;
+            background-color: #e0e0e0;
+            border-radius: 15px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .preset-toggle::after {
+            content: '';
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background-color: white;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .preset-toggle.active {
+            background-color: #4cd964;
+        }
+        
+        .preset-toggle.active::after {
+            left: 22px;
+        }
+        
+        .add-preset {
+            background-color: white;
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #007aff;
+            font-weight: 500;
+            cursor: pointer;
+            border: 2px dashed #e0e0e0;
+        }
+        
+        .add-preset i {
+            margin-right: 8px;
+            font-size: 20px;
+        }
+        
+        /* 定制页面样式 */
+        .custom-header {
+            background-color: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .weather-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .weather-icon {
+            font-size: 40px;
+            margin-right: 15px;
+            color: #f6b93b;
+        }
+        
+        .weather-details {
+            flex: 1;
+        }
+        
+        .weather-temp {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .weather-desc {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .custom-form {
+            background-color: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            color: #333;
+            display: block;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            font-size: 14px;
+            color: #333;
+            background-color: #f8f8f8;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            font-size: 14px;
+            color: #333;
+            background-color: #f8f8f8;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .smart-adjust {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-top: 1px solid #eee;
+        }
+        
+        .smart-adjust-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .smart-adjust-desc {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .save-btn {
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        /* 我的页面样式 */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            background-color: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .profile-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 35px;
+            background-color: #007aff;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            margin-right: 15px;
+        }
+        
+        .profile-info {
+            flex: 1;
+        }
+        
+        .profile-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .profile-id {
+            font-size: 14px;
+            color: #999;
+        }
+        
+        .menu-section {
+            background-color: white;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+        
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #f5f5f5;
+            cursor: pointer;
+        }
+        
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+        
+        .menu-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            font-size: 18px;
+            color: white;
+        }
+        
+        .menu-icon-blue {
+            background-color: #007aff;
+        }
+        
+        .menu-icon-green {
+            background-color: #4cd964;
+        }
+        
+        .menu-icon-orange {
+            background-color: #ff9500;
+        }
+        
+        .menu-icon-red {
+            background-color: #ff3b30;
+        }
+        
+        .menu-icon-purple {
+            background-color: #5856d6;
+        }
+        
+        .menu-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        
+        .menu-title {
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .menu-arrow {
+            color: #ccc;
+            font-size: 18px;
+        }
+        
+        .logout-btn {
+            background-color: white;
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ff3b30;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        /* 通用样式 */
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        /* 字体图标 */
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <h1 style="margin-bottom: 30px; color: #333;">空调控制应用原型</h1>
+    
+    <!-- 问卷调查弹窗 -->
+    <div id="survey-modal" class="survey-modal">
+        <div class="survey-content">
+            <div class="survey-header">
+                <h3>个性化设置问卷</h3>
+                <p>请完成以下问题，帮助我们为您提供更智能的空调体验</p>
+            </div>
+            <div class="survey-form">
+                <!-- 问题1：常态舒适温度 -->
+                <div class="survey-question" data-question="1">
+                    <div class="survey-question-title">1. 您平时感觉舒适的室内温度是？</div>
+                    <div class="survey-options">
+                        <div class="survey-option" data-value="18-20">18-20°C</div>
+                        <div class="survey-option" data-value="21-23">21-23°C</div>
+                        <div class="survey-option" data-value="24-26">24-26°C</div>
+                        <div class="survey-option" data-value="27-29">27-29°C</div>
+                    </div>
+                </div>
+                
+                <!-- 问题2：常用风速 -->
+                <div class="survey-question" data-question="2" style="display: none;">
+                    <div class="survey-question-title">2. 您平时喜欢的空调风速是？</div>
+                    <div class="survey-options">
+                        <div class="survey-option" data-value="low">低风速</div>
+                        <div class="survey-option" data-value="medium">中风速</div>
+                        <div class="survey-option" data-value="high">高风速</div>
+                        <div class="survey-option" data-value="auto">自动调节</div>
+                    </div>
+                </div>
+                
+                <!-- 问题3：日常活动 -->
+                <div class="survey-question" data-question="3" style="display: none;">
+                    <div class="survey-question-title">3. 您在家中最常进行的活动是？（可多选）</div>
+                    <div class="survey-options">
+                        <div class="survey-option" data-value="rest">休息/睡眠</div>
+                        <div class="survey-option" data-value="work">工作/学习</div>
+                        <div class="survey-option" data-value="exercise">运动健身</div>
+                        <div class="survey-option" data-value="entertainment">娱乐活动</div>
+                        <div class="survey-option" data-value="cooking">烹饪</div>
+                    </div>
+                </div>
+                
+                <!-- 问题4：个人爱好 -->
+                <div class="survey-question" data-question="4" style="display: none;">
+                    <div class="survey-question-title">4. 您有哪些个人爱好？（可多选）</div>
+                    <div class="survey-options">
+                        <div class="survey-option" data-value="reading">阅读</div>
+                        <div class="survey-option" data-value="sports">运动</div>
+                        <div class="survey-option" data-value="music">音乐</div>
+                        <div class="survey-option" data-value="movie">电影</div>
+                        <div class="survey-option" data-value="travel">旅行</div>
+                        <div class="survey-option" data-value="cooking">烹饪</div>
+                        <div class="survey-option" data-value="gaming">游戏</div>
+                    </div>
+                </div>
+                
+                <!-- 问题5：其他偏好 -->
+                <div class="survey-question" data-question="5" style="display: none;">
+                    <div class="survey-question-title">5. 您对空调的其他偏好？</div>
+                    <textarea class="survey-input" placeholder="请输入您的其他偏好或建议..."></textarea>
+                </div>
+            </div>
+            <div class="survey-footer">
+                <div class="survey-progress">
+                    <div class="survey-progress-bar">
+                        <div class="survey-progress-fill" style="width: 20%;"></div>
+                    </div>
+                    <span>1/5</span>
+                </div>
+                <div>
+                    <button class="survey-btn survey-btn-prev" disabled>上一步</button>
+                    <button class="survey-btn survey-btn-next">下一步</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="prototype-container">
+        <!-- 首页原型 -->
+        <div class="phone">
+            <div class="notch"></div>
+            <div class="screen">
+                <div class="status-bar">
+                    <div class="signal">5G</div>
+                    <div class="time">9:41</div>
+                    <div class="battery">85% <i class="material-icons" style="font-size: 16px;">battery_std</i></div>
+                </div>
+                
+                <div id="home-page" class="page active">
+                    <div class="content">
+                        <div class="home-header">
+                            <div class="temperature-display">
+                                <div>
+                                    <span class="current-temp">24</span>
+                                    <span class="temp-unit">°C</span>
+                                </div>
+                                <i id="power-btn" class="material-icons" style="font-size: 36px; cursor: pointer;">power_settings_new</i>
+                            </div>
+                            <div class="ac-status">
+                                <div class="status-item">
+                                    <i class="material-icons">ac_unit</i>
+                                    <span>制冷模式</span>
+                                </div>
+                                <div class="status-item">
+                                    <i class="material-icons">air</i>
+                                    <span>风速: 自动</span>
+                                </div>
+                                <div class="status-item">
+                                    <i class="material-icons">swap_vert</i>
+                                    <span>风向: 自动</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="control-section">
+                            <div class="section-title">
+                                <i class="material-icons">tune</i>
+                                <span>模式调节</span>
+                            </div>
+                            <div class="mode-controls">
+                                <button class="control-btn active">
+                                    <i class="material-icons">ac_unit</i>
+                                    <span>制冷</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">whatshot</i>
+                                    <span>制热</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">water_drop</i>
+                                    <span>除湿</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">air</i>
+                                    <span>送风</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">auto_mode</i>
+                                    <span>自动</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="control-section">
+                            <div class="section-title">
+                                <i class="material-icons">thermostat</i>
+                                <span>温度调节</span>
+                            </div>
+                            <div class="temp-slider">
+                                <input type="range" min="16" max="30" value="24" class="slider" id="temp-range">
+                                <div class="temp-range">
+                                    <span>16°C</span>
+                                    <span>30°C</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="control-section">
+                            <div class="section-title">
+                                <i class="material-icons">air</i>
+                                <span>风速调节</span>
+                            </div>
+                            <div class="fan-controls">
+                                <button class="control-btn active">
+                                    <i class="material-icons">auto_mode</i>
+                                    <span>自动</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">speed</i>
+                                    <span>低速</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">speed</i>
+                                    <span>中速</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">speed</i>
+                                    <span>高速</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">speed</i>
+                                    <span>强劲</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="control-section">
+                            <div class="section-title">
+                                <i class="material-icons">swap_vert</i>
+                                <span>风向调节</span>
+                            </div>
+                            <div class="direction-controls">
+                                <button class="control-btn active">
+                                    <i class="material-icons">auto_mode</i>
+                                    <span>自动</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">arrow_upward</i>
+                                    <span>上吹</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">arrow_forward</i>
+                                    <span>前吹</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">arrow_downward</i>
+                                    <span>下吹</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">swap_vert</i>
+                                    <span>上下摆动</span>
+                                </button>
+                                <button class="control-btn">
+                                    <i class="material-icons">swap_horiz</i>
+                                    <span>左右摆动</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="control-section">
+                            <div class="section-title">
+                                <i class="material-icons">more_horiz</i>
+                                <span>更多功能</span>
+                            </div>
+                            <div class="quick-actions">
+                                <button class="action-btn" id="timer-btn">
+                                    <i class="material-icons">schedule</i>
+                                    <span>定时</span>
+                                </button>
+                                <button class="action-btn" id="sleep-btn">
+                                    <i class="material-icons">nightlight</i>
+                                    <span>睡眠模式</span>
+                                </button>
+                                <button class="action-btn" id="eco-btn">
+                                    <i class="material-icons">eco</i>
+                                    <span>节能模式</span>
+                                </button>
+                                <button class="action-btn" id="child-lock-btn">
+                                    <i class="material-icons">child_care</i>
+                                    <span>儿童锁</span>
+                                </button>
+                            </div>
+                            
+                            <!-- 定时弹窗 -->
+                            <div id="timer-modal" class="modal">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3>设置定时</h3>
+                                        <span class="close-modal">&times;</span>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="timer-option">
+                                            <input type="radio" id="timer-30" name="timer" value="30">
+                                            <label for="timer-30">30分钟</label>
+                                        </div>
+                                        <div class="timer-option">
+                                            <input type="radio" id="timer-60" name="timer" value="60">
+                                            <label for="timer-60">1小时</label>
+                                        </div>
+                                        <div class="timer-option">
+                                            <input type="radio" id="timer-120" name="timer" value="120">
+                                            <label for="timer-120">2小时</label>
+                                        </div>
+                                        <div class="timer-option">
+                                            <input type="radio" id="timer-180" name="timer" value="180">
+                                            <label for="timer-180">3小时</label>
+                                        </div>
+                                        <div class="timer-option">
+                                            <input type="radio" id="timer-custom" name="timer" value="custom">
+                                            <label for="timer-custom">自定义</label>
+                                            <input type="number" id="custom-time" min="1" max="1440" placeholder="分钟" disabled>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button id="cancel-timer">取消</button>
+                                        <button id="confirm-timer">确定</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-bar">
+                        <div class="tab active" onclick="switchPage('home-page')">
+                            <i class="material-icons">home</i>
+                            <span>首页</span>
+                        </div>
+                        <div class="tab" onclick="switchPage('preset-page')">
+                            <i class="material-icons">bookmark</i>
+                            <span>预设</span>
+                        </div>
+                        <div class="tab" onclick="switchPage('custom-page')">
+                            <i class="material-icons">tune</i>
+                            <span>定制</span>
+                        </div>
+                        <div class="tab" onclick="switchPage('profile-page')">
+                            <i class="material-icons">person</i>
+                            <span>我的</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 预设页面 -->
+                <div id="preset-page" class="page">
+                    <div class="content">
+                        <h2 class="page-title">预设</h2>
+                        
+                        <div class="preset-card">
+                            <div class="preset-icon preset-morning">
+                                <i class="material-icons">wb_sunny</i>
+                            </div>
+                            <div class="preset-info">
+                                <div class="preset-name">起床模式</div>
+                                <div class="preset-desc">早晨6:30自动开启，温和唤醒</div>
+                                <div class="preset-settings">
+                                    <div class="preset-setting">
+                                        <i class="material-icons">thermostat</i>
+                                        <span>25°C</span>
+                                    </div>
+                                    <div class="preset-setting">
+                                        <i class="material-icons">air</i>
+                                        <span>低风速</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="preset-toggle active"></div>
+                        </div>
+                        
+                        <div class="preset-card">
+                            <div class="preset-icon preset-home">
+                                <i class="material-icons">home</i>
+                            </div>
+                            <div class="preset-info">
+                                <div class="preset-name">回家模式</div>
+                                <div class="preset-desc">检测到您回家后自动开启</div>
+                                <div class="preset-settings">
+                                    <div class="preset-setting">
+                                        <i class="material-icons">thermostat</i>
+                                        <span>24°C</span>
+                                    </div>
+                                    <div class="preset-setting">
+                                        <i class="material-icons">air</i>
+                                        <span>中风速</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="preset-toggle active"></div>
+                        </div>
+                        
+                        <div class="preset-card">
+                            <div class="preset-icon preset-sleep">
+                                <i class="material-icons">nightlight</i>
+                            </div>
+                            <div class="preset-info">
+                                <div class="preset-name">睡眠模式</div>
+                                <div class="preset-desc">夜间温度自动调节，安静舒适</div>
+                                <div class="preset-settings">
+                                    <div class="preset-setting">
+                                        <i class="material-icons">thermostat</i>
+                                        <span>26°C</span>
+                                    </div>
+                                    <div class="preset-setting">
+                                        <i class="material-icons">air</i>
+                                        <span>静音</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="preset-toggle"></div>
+                        </div>
+                        
+                        <div class="preset-card">
+                            <div class="preset-icon preset-sport">
+                                <i class="material-icons">fitness_center</i>
+                            </div>
+                            <div class="preset-info">
+                                <div class="preset-name">运动模式</div>
+                                <div class="preset-desc">运动前预先降温，保持清爽</div>
+                                <div class="preset-settings">
+                                    <div class="preset-setting">
+                                        <i class="material-icons">thermostat</i>
+                                        <span>22°C</span>
+                                    </div>
+                                    <div class="preset-setting">
+                                        <i class="material-icons">air</i>
+                                        <span>高风速</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="preset-toggle"></div>
+                        </div>
+                        
+                        <div class="preset-card">
+                            <div class="preset-icon preset-work">
+                                <i class="material-icons">work</i>
+                            </div>
+                            <div class="preset-info">
+                                <div class="preset-name">工作模式</div>
+                                <div class="preset-desc">保持清醒舒适的工作环境</div>
+                                <div class="preset-settings">
+                                    <div class="preset-setting">
+                                        <i class="material-icons">thermostat</i>
+                                        <span>23°C</span>
+                                    </div>
+                                    <div class="preset-setting">
+                                        <i class="material-icons">air</i>
+                                        <span>中风速</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="preset-toggle active"></div>
+                        </div>
+                        
+                        <div class="add-preset">
+                            <i class="material-icons">add_circle</i>
+                            <span>添加新预设</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-bar">
+                        <div class="tab" onclick="switchPage('home-page')">
+                            <i class="material-icons">home</i>
+                            <span>首页</span>
+                        </div>
+                        <div class="tab active" onclick="switchPage('preset-page')">
+                            <i class="material-icons">bookmark</i>
+                            <span>预设</span>
+                        </div>
+                        <div class="tab" onclick="switchPage('custom-page')">
+                            <i class="material-icons">tune</i>
+                            <span>定制</span>
+                        </div>
+                        <div class="tab" onclick="switchPage('profile-page')">
+                            <i class="material-icons">person</i>
+                            <span>我的</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 定制页面 -->
+                <div id="custom-page" class="page">
+                    <div class="content">
+                        <h2 class="page-title">定制</h2>
+                        
+                        <div class="custom-header">
+                            <div class="weather-info">
+                                <i class="material-icons weather-icon">wb_sunny</i>
+                                <div class="weather-details">
+                                    <div class="weather-temp">28°C</div>
+                                    <div class="weather-desc">晴天 · 北京</div>
+                                </div>
+                            </div>
+                            <div class="weather-desc" style="margin-top: 10px;">今日天气炎热，建议设置较低温度。</div>
+                            <div class="usage-stats" style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.05);">
+                                <div class="stat-item" style="text-align: center;">
+                                    <div id="adjust-count" style="font-size: 22px; font-weight: 500; color: #007aff;">0</div>
+                                    <div style="font-size: 12px; color: #666;">调整次数</div>
+                                </div>
+                                <div class="stat-item" style="text-align: center;">
+                                    <div id="train-count" style="font-size: 22px; font-weight: 500; color: #4cd964;">0</div>
+                                    <div style="font-size: 12px; color: #666;">模型训练次数</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="custom-form">
+                            <div class="form-group">
+                                <label class="form-label">常用温度</label>
+                                <input type="number" class="form-input" value="24" min="16" max="30">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">常用模式</label>
+                                <select class="form-select">
+                                    <option>制冷</option>
+                                    <option>制热</option>
+                                    <option>除湿</option>
+                                    <option>送风</option>
+                                    <option>自动</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">常用风速</label>
+                                    <select class="form-select">
+                                        <option>自动</option>
+                                        <option>低速</option>
+                                        <option>中速</option>
+                                        <option>高速</option>
+                                        <option>强劲</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">理想湿度</label>
+                                    <select class="form-select">
+                                        <option>40%</option>
+                                        <option>45%</option>
+                                        <option>50%</option>
+                                        <option>55%</option>
+                                        <option>60%</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="smart-adjust">
+                                <div>
+                                    <div class="smart-adjust-label">智能调节</div>
+                                    <div class="smart-adjust-desc">根据您的使用习惯自动调整空调设置</div>
+                                </div>
+                                <div class="preset-toggle active"></div>
+                            </div>
+                            
+                            <button class="save-btn">保存设置</button>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-bar">
+                        <div class="tab" onclick="switchPage('home-page')">
+                            <i class="material-icons">home</i>
+                            <span>首页</span>
+                        </div>
+                        <div class="tab" onclick="switchPage('preset-page')">
+                            <i class="material-icons">bookmark</i>
+                            <span>预设</span>
+                        </div>
+                        <div class="tab active" onclick="switchPage('custom-page')">
+                            <i class="material-icons">tune</i>
+                            <span>定制</span>
+                        </div>
+                        <div class="tab" onclick="switchPage('profile-page')">
+                            <i class="material-icons">person</i>
+                            <span>我的</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 我的页面 -->
+                <div id="profile-page" class="page">
+                    <div class="content">
+                        <h2 class="page-title">我的</h2>
+                        
+                        <div class="profile-header">
+                            <div class="profile-avatar">U</div>
+                            <div class="profile-info">
+                                <div class="profile-name">用户名</div>
+                                <div class="profile-id">ID: 12345678</div>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-section">
+                            <div class="menu-item">
+                                <div class="menu-content">
+                                    <div class="menu-icon menu-icon-blue">
+                                        <i class="material-icons">build</i>
+                                    </div>
+                                    <div class="menu-title">耗材管理</div>
+                                </div>
+                                <div class="menu-arrow">
+                                    <i class="material-icons">chevron_right</i>
+                                </div>
+                            </div>
+                            
+                            <div class="menu-item">
+                                <div class="menu-content">
+                                    <div class="menu-icon menu-icon-green">
+                                        <i class="material-icons">link</i>
+                                    </div>
+                                    <div class="menu-title">连接第三方平台</div>
+                                </div>
+                                <div class="menu-arrow">
+                                    <i class="material-icons">chevron_right</i>
+                                </div>
+                            </div>
+                            
+                            <div class="menu-item">
+                                <div class="menu-content">
+                                    <div class="menu-icon menu-icon-orange">
+                                        <i class="material-icons">history</i>
+                                    </div>
+                                    <div class="menu-title">使用记录</div>
+                                </div>
+                                <div class="menu-arrow">
+                                    <i class="material-icons">chevron_right</i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-section">
+                            <div class="menu-item">
+                                <div class="menu-content">
+                                    <div class="menu-icon menu-icon-purple">
+                                        <i class="material-icons">feedback</i>
+                                    </div>
+                                    <div class="menu-title">建议与反馈</div>
+                                </div>
+                                <div class="menu-arrow">
+                                    <i class="material-icons">chevron_right</i>
+                                </div>
+                            </div>
+                            
+                            <div class="menu-item">
+                                <div class="menu-content">
+                                    <div class="menu-icon menu-icon-blue">
+                                        <i class="material-icons">help</i>
+                                    </div>
+                                    <div class="menu-title">帮助中心</div>
+                                </div>
+                                <div class="menu-arrow">
+                                    <i class="material-icons">chevron_right</i>
+                                </div>
+                            </div>
+                            
+                            <div class="menu-item">
+                                <div class="menu-content">
+                                    <div class="menu-icon menu-icon-blue">
+                                        <i class="material-icons">settings</i>
+                                    </div>
+                                    <div class="menu-title">设置</div>
+                                </div>
+                                <div class="menu-arrow">
+                                    <i class="material-icons">chevron_right</i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="logout-btn">
+                            <span>退出登录</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-bar">
+                        <div class="tab" onclick="switchPage('home-page')">
+                            <i class="material-icons">home</i>
+                            <span>首页</span>
+                        </div>
+                        <div class="tab" onclick="switchPage('preset-page')">
+                            <i class="material-icons">bookmark</i>
+                            <span>预设</span>
+                        </div>
+                        <div class="tab" onclick="switchPage('custom-page')">
+                            <i class="material-icons">tune</i>
+                            <span>定制</span>
+                        </div>
+                        <div class="tab active" onclick="switchPage('profile-page')">
+                            <i class="material-icons">person</i>
+                            <span>我的</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 检查是否是首次访问
+        function isFirstVisit() {
+            if (!localStorage.getItem('hasVisited')) {
+                localStorage.setItem('hasVisited', 'true');
+                return true;
+            }
+            return false;
+        }
+        
+        // 问卷调查相关变量和函数
+        const surveyModal = document.getElementById('survey-modal');
+        const surveyQuestions = document.querySelectorAll('.survey-question');
+        const prevBtn = document.querySelector('.survey-btn-prev');
+        const nextBtn = document.querySelector('.survey-btn-next');
+        const progressFill = document.querySelector('.survey-progress-fill');
+        const progressText = document.querySelector('.survey-progress span');
+        
+        let currentQuestion = 1;
+        const totalQuestions = surveyQuestions.length;
+        const userAnswers = {};
+        
+        // 初始化问卷选项点击事件
+        document.querySelectorAll('.survey-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const questionNum = this.closest('.survey-question').dataset.question;
+                const value = this.dataset.value;
+                
+                // 对于多选题（问题3和4）
+                if (questionNum === '3' || questionNum === '4') {
+                    this.classList.toggle('selected');
+                    
+                    // 更新用户答案（多选）
+                    if (!userAnswers[questionNum]) {
+                        userAnswers[questionNum] = [];
+                    }
+                    
+                    if (this.classList.contains('selected')) {
+                        userAnswers[questionNum].push(value);
+                    } else {
+                        const index = userAnswers[questionNum].indexOf(value);
+                        if (index > -1) {
+                            userAnswers[questionNum].splice(index, 1);
+                        }
+                    }
+                } 
+                // 对于单选题（问题1和2）
+                else {
+                    // 移除同组中其他选项的选中状态
+                    this.closest('.survey-options').querySelectorAll('.survey-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    this.classList.add('selected');
+                    
+                    // 更新用户答案（单选）
+                    userAnswers[questionNum] = value;
+                }
+            });
+        });
+        
+        // 下一步按钮点击事件
+        nextBtn.addEventListener('click', function() {
+            // 如果是最后一个问题，则提交问卷
+            if (currentQuestion === totalQuestions) {
+                // 获取文本输入的答案
+                const textInput = document.querySelector('.survey-question[data-question="5"] .survey-input');
+                userAnswers[5] = textInput.value;
+                
+                // 保存用户答案到本地存储
+                localStorage.setItem('surveyAnswers', JSON.stringify(userAnswers));
+                
+                // 关闭问卷
+                surveyModal.style.display = 'none';
+                
+                // 显示感谢信息
+                alert('感谢您完成问卷！我们将根据您的偏好为您提供更智能的空调体验。');
+                return;
+            }
+            
+            // 隐藏当前问题，显示下一个问题
+            document.querySelector(`.survey-question[data-question="${currentQuestion}"]`).style.display = 'none';
+            currentQuestion++;
+            document.querySelector(`.survey-question[data-question="${currentQuestion}"]`).style.display = 'block';
+            
+            // 更新进度条和文本
+            updateProgress();
+            
+            // 更新按钮状态
+            prevBtn.disabled = false;
+            if (currentQuestion === totalQuestions) {
+                nextBtn.textContent = '完成';
+            }
+        });
+        
+        // 上一步按钮点击事件
+        prevBtn.addEventListener('click', function() {
+            if (currentQuestion > 1) {
+                // 隐藏当前问题，显示上一个问题
+                document.querySelector(`.survey-question[data-question="${currentQuestion}"]`).style.display = 'none';
+                currentQuestion--;
+                document.querySelector(`.survey-question[data-question="${currentQuestion}"]`).style.display = 'block';
+                
+                // 更新进度条和文本
+                updateProgress();
+                
+                // 更新按钮状态
+                if (currentQuestion === 1) {
+                    prevBtn.disabled = true;
+                }
+                if (currentQuestion < totalQuestions) {
+                    nextBtn.textContent = '下一步';
+                }
+            }
+        });
+        
+        // 更新进度条和文本
+        function updateProgress() {
+            const progress = (currentQuestion / totalQuestions) * 100;
+            progressFill.style.width = `${progress}%`;
+            progressText.textContent = `${currentQuestion}/${totalQuestions}`;
+        }
+        
+        // 页面加载时检查是否首次访问，如果是则显示问卷
+        window.addEventListener('load', function() {
+            if (isFirstVisit()) {
+                surveyModal.style.display = 'block';
+            }
+        });
+        
+        function switchPage(pageId) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // 显示选中的页面
+            document.getElementById(pageId).classList.add('active');
+            
+            // 更新底部导航栏状态
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 找到对应的tab并激活
+            const tabs = document.querySelectorAll('.tab');
+            if (pageId === 'home-page') {
+                tabs[0].classList.add('active');
+                tabs[4].classList.add('active');
+                tabs[8].classList.add('active');
+                tabs[12].classList.add('active');
+            } else if (pageId === 'preset-page') {
+                tabs[1].classList.add('active');
+                tabs[5].classList.add('active');
+                tabs[9].classList.add('active');
+                tabs[13].classList.add('active');
+            } else if (pageId === 'custom-page') {
+                tabs[2].classList.add('active');
+                tabs[6].classList.add('active');
+                tabs[10].classList.add('active');
+                tabs[14].classList.add('active');
+            } else if (pageId === 'profile-page') {
+                tabs[3].classList.add('active');
+                tabs[7].classList.add('active');
+                tabs[11].classList.add('active');
+                tabs[15].classList.add('active');
+            }
+        }
+        
+        // 初始化调整次数和模型训练次数
+        let adjustCount = 0;
+        let trainCount = 0;
+        
+        // 从localStorage加载计数器数据（如果有）
+        if (localStorage.getItem('adjustCount')) {
+            adjustCount = parseInt(localStorage.getItem('adjustCount'));
+            document.getElementById('adjust-count').textContent = adjustCount;
+        }
+        
+        if (localStorage.getItem('trainCount')) {
+            trainCount = parseInt(localStorage.getItem('trainCount'));
+            document.getElementById('train-count').textContent = trainCount;
+        }
+        
+        // 更新计数器函数
+        function updateCounters() {
+            adjustCount++;
+            trainCount++;
+            
+            // 更新DOM显示
+            document.getElementById('adjust-count').textContent = adjustCount;
+            document.getElementById('train-count').textContent = trainCount;
+            
+            // 保存到localStorage
+            localStorage.setItem('adjustCount', adjustCount);
+            localStorage.setItem('trainCount', trainCount);
+        }
+        
+        // 温度滑块交互
+        const tempSlider = document.getElementById('temp-range');
+        tempSlider.addEventListener('input', function() {
+            const currentTemp = document.querySelector('.current-temp');
+            currentTemp.textContent = this.value;
+        });
+        
+        // 温度滑块调整完成时更新计数器
+        tempSlider.addEventListener('change', function() {
+            updateCounters();
+        });
+        
+        // 模式按钮交互
+        const controlBtns = document.querySelectorAll('.control-btn');
+        controlBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 找到同组的按钮
+                const parentDiv = this.parentElement;
+                const siblingBtns = parentDiv.querySelectorAll('.control-btn');
+                
+                // 如果按钮已经是active状态，则不做任何操作
+                if (this.classList.contains('active')) {
+                    return;
+                }
+                
+                // 移除所有按钮的active类
+                siblingBtns.forEach(siblingBtn => {
+                    siblingBtn.classList.remove('active');
+                });
+                
+                // 给当前点击的按钮添加active类
+                this.classList.add('active');
+                
+                // 检查按钮所属的控制组，如果是风速或风向调节，则更新计数器
+                const controlSection = this.closest('.control-section');
+                if (controlSection) {
+                    const sectionTitle = controlSection.querySelector('.section-title span');
+                    if (sectionTitle && (sectionTitle.textContent === '风速调节' || sectionTitle.textContent === '风向调节' || sectionTitle.textContent === '温度调节')) {
+                        updateCounters();
+                    }
+                }
+            });
+        });
+        
+        // 预设开关交互
+        const presetToggles = document.querySelectorAll('.preset-toggle');
+        presetToggles.forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+        
+        // 电源开关按钮交互
+        const powerBtn = document.getElementById('power-btn');
+        let isPowerOn = false; // 记录电源开关状态
+        
+        powerBtn.addEventListener('click', function() {
+            // 添加过渡效果
+            this.style.transition = 'transform 0.2s, color 0.2s';
+            
+            // 切换开关状态
+            isPowerOn = !isPowerOn;
+            
+            if (isPowerOn) {
+                // 开启状态：缩小并变蓝
+                this.style.transform = 'scale(0.9)';
+                this.style.color = '#007aff';
+            } else {
+                // 关闭状态：恢复原样
+                this.style.transform = 'scale(1)';
+                this.style.color = '';
+            }
+        });
+        
+        // 定时弹窗交互
+        const timerBtn = document.getElementById('timer-btn');
+        const timerModal = document.getElementById('timer-modal');
+        const closeModal = document.querySelector('.close-modal');
+        const cancelTimer = document.getElementById('cancel-timer');
+        const confirmTimer = document.getElementById('confirm-timer');
+        const customTimeRadio = document.getElementById('timer-custom');
+        const customTimeInput = document.getElementById('custom-time');
+        
+        // 打开定时弹窗
+        timerBtn.addEventListener('click', function() {
+            timerModal.style.display = 'block';
+        });
+        
+        // 关闭定时弹窗
+        closeModal.addEventListener('click', function() {
+            timerModal.style.display = 'none';
+        });
+        
+        cancelTimer.addEventListener('click', function() {
+            timerModal.style.display = 'none';
+        });
+        
+        confirmTimer.addEventListener('click', function() {
+            // 获取选中的定时时间
+            let selectedTime = '';
+            const radioButtons = document.querySelectorAll('input[name="timer"]');
+            for (const radioButton of radioButtons) {
+                if (radioButton.checked) {
+                    if (radioButton.value === 'custom') {
+                        selectedTime = customTimeInput.value + '分钟';
+                    } else {
+                        selectedTime = radioButton.value + '分钟';
+                    }
+                    break;
+                }
+            }
+            
+            // 显示定时已设置的提示（这里可以根据需要添加更多逻辑）
+            if (selectedTime) {
+                alert('定时已设置：' + selectedTime);
+                timerModal.style.display = 'none';
+            } else {
+                alert('请选择定时时间');
+            }
+        });
+        
+        // 自定义时间输入框交互
+        customTimeRadio.addEventListener('change', function() {
+            customTimeInput.disabled = !this.checked;
+            if (this.checked) {
+                customTimeInput.focus();
+            }
+        });
+        
+        document.querySelectorAll('input[name="timer"]').forEach(radio => {
+            if (radio.id !== 'timer-custom') {
+                radio.addEventListener('change', function() {
+                    customTimeInput.disabled = true;
+                });
+            }
+        });
+        
+        // 功能按钮点击效果（睡眠模式、节能模式、儿童锁）
+        const sleepBtn = document.getElementById('sleep-btn');
+        const ecoBtn = document.getElementById('eco-btn');
+        const childLockBtn = document.getElementById('child-lock-btn');
+        
+        sleepBtn.addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+        
+        ecoBtn.addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+        
+        childLockBtn.addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+    </script>
+</body>
+</html>
